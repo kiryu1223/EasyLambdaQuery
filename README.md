@@ -1,7 +1,7 @@
 
 ### 开启方法
 往maven的build的compilerArgs参数里面加入 -Xplugin:ExpressionTree
-```maven
+```xml
     <build>
         <plugins>
             <plugin>
