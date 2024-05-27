@@ -9,9 +9,11 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>{你的maven版本}</version>
                 <configuration>
+                    <!--↓↓↓↓↓↓↓↓↓-->
                    <compilerArgs>
                       <arg>-Xplugin:ExpressionTree</arg>
                    </compilerArgs>
+                    <!--↑↑↑↑↑↑↑↑↑-->
                 </configuration>
             </plugin>
         </plugins>
