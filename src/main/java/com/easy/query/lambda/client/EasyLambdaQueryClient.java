@@ -2,6 +2,7 @@ package com.easy.query.lambda.client;
 
 import com.easy.query.core.api.client.EasyQueryClient;
 import com.easy.query.core.expression.sql.expression.factory.ExpressionFactory;
+import com.easy.query.lambda.cud.LDelete;
 import com.easy.query.mysql.expression.MySQLQuerySQLExpression;
 import com.easy.query.oracle.expression.OracleExpressionFactory;
 import com.easy.query.lambda.cud.LUpdate;
@@ -36,6 +37,11 @@ public class EasyLambdaQueryClient
         {
             return DbType.MySQL;
         }
+    }
+
+    public <T> LDelete<T> delete(Class<T> c)
+    {
+        return new LDelete<>(easyQueryClient.deletable(c),dbType);
     }
 
     public <T> LUpdate<T> updatable(Class<T> c)

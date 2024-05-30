@@ -1,5 +1,6 @@
 package com.easy.query.lambda.condition.where;
 
+import com.easy.query.core.basic.api.delete.ClientExpressionDeletable;
 import com.easy.query.core.basic.api.select.ClientQueryable;
 import com.easy.query.core.basic.api.select.ClientQueryable2;
 import com.easy.query.core.basic.api.select.ClientQueryable3;
@@ -18,6 +19,27 @@ public class Where extends Criteria
     {
         checkExprBody(expression);
         this.expression = expression;
+    }
+
+    public void analysis(ClientExpressionDeletable<?> deletable, QueryData queryData)
+    {
+        WhereVisitor where = new WhereVisitor(expression.getParameters(), queryData.getDbType());
+        expression.getBody().accept(where);
+        deletable.where(w -> w.sqlNativeSegment(where.getData(), s ->
+        {
+            for (SqlValue sqlValue : where.getSqlValue())
+            {
+                switch (sqlValue.type)
+                {
+                    case value:
+                        s.value(sqlValue.value);
+                        break;
+                    case property:
+                        s.expression(sqlValue.value.toString());
+                        break;
+                }
+            }
+        }));
     }
 
     public void analysis(ClientExpressionUpdatable<?> updatable, QueryData queryData)
