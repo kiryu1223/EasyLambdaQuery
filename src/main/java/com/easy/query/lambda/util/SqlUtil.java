@@ -33,7 +33,14 @@ public class SqlUtil
     public static String fieldName(Field field)
     {
         Column column = field.getAnnotation(Column.class);
-        return column == null ? field.getName() : column.value();
+        if (column == null || column.value().isEmpty())
+        {
+            return field.getName();
+        }
+        else
+        {
+            return column.value();
+        }
     }
 
     public static String toSqlOp(OperatorType operatorType)
