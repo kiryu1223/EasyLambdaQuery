@@ -36,6 +36,7 @@ public class UnsafeFastBean extends DefaultFastBean
     }
 
     private final Class<?> beanClass;
+    private final boolean isAnonymousClass;
     private final MethodHandles.Lookup lookup;
 
     public UnsafeFastBean(Class<?> beanClass, MethodHandles.Lookup lookup)
@@ -43,28 +44,36 @@ public class UnsafeFastBean extends DefaultFastBean
         super(beanClass);
         this.beanClass = beanClass;
         this.lookup = lookup;
+        this.isAnonymousClass = beanClass.isAnonymousClass();
     }
 
     @Override
     public Supplier<Object> getBeanConstructorCreator()
     {
-        return () ->
+        if (isAnonymousClass)
         {
-            try
+            return () ->
             {
-                return unsafe.allocateInstance(beanClass);
-            }
-            catch (InstantiationException e)
-            {
-                throw new RuntimeException(e);
-            }
-        };
+                try
+                {
+                    return unsafe.allocateInstance(beanClass);
+                }
+                catch (InstantiationException e)
+                {
+                    throw new RuntimeException(e);
+                }
+            };
+        }
+        else
+        {
+            return super.getBeanConstructorCreator();
+        }
     }
 
     @Override
     public Property<Object, ?> getBeanGetter(FastBeanProperty prop)
     {
-        if (beanClass.isAnonymousClass())
+        if (isAnonymousClass)
         {
             Class<?> propertyType = prop.getPropertyType();
             Method readMethod = prop.getReadMethod();
@@ -101,7 +110,7 @@ public class UnsafeFastBean extends DefaultFastBean
     @Override
     public PropertySetterCaller<Object> getBeanSetter(FastBeanProperty prop)
     {
-        if (beanClass.isAnonymousClass())
+        if (isAnonymousClass)
         {
             Class<?> propertyType = prop.getPropertyType();
 
@@ -110,7 +119,8 @@ public class UnsafeFastBean extends DefaultFastBean
 
             Class<?> lambdaPropertyType = EasyClassUtil.getObjectTypeWhenPrimitive(propertyType);
             String getFunName = writeMethod.getName();
-            try {
+            try
+            {
 
                 MethodType instantiatedMethodType = MethodType.methodType(void.class, beanClass, lambdaPropertyType);
                 MethodHandle target = lookup.findVirtual(beanClass, getFunName, setter);
@@ -126,7 +136,9 @@ public class UnsafeFastBean extends DefaultFastBean
 
                 PropertyVoidSetter<Object, Object> objectPropertyVoidSetter = (PropertyVoidSetter<Object, Object>) site.getTarget().invokeExact();
                 return objectPropertyVoidSetter::apply;
-            } catch (Throwable e) {
+            }
+            catch (Throwable e)
+            {
                 throw new EasyQueryException(e);
             }
         }
@@ -136,34 +148,34 @@ public class UnsafeFastBean extends DefaultFastBean
         }
     }
 
-    public static void main(String[] args) throws IntrospectionException
-    {
-        Result result = new Result()
-        {
-            String id = "id";
-
-            public String getId()
-            {
-                return id;
-            }
-
-            public void setId(String id)
-            {
-                this.id = id;
-            }
-
-            @Override
-            public String toString()
-            {
-                return "匿名Result{" +
-                        "id='" + id + '\'' +
-                        '}';
-            }
-        };
-        FastBeanProperty fastBeanProperty = new FastBeanProperty(false, new PropertyDescriptor("id", result.getClass()));
-        UnsafeFastBean unsafeFastBean = new UnsafeFastBean(result.getClass(),MethodHandles.lookup());
-        PropertySetterCaller<Object> beanSetter = unsafeFastBean.getBeanSetter(fastBeanProperty);
-        beanSetter.call(result,"new");
-        System.out.println(result);
-    }
+//    public static void main(String[] args) throws IntrospectionException
+//    {
+//        Result result = new Result()
+//        {
+//            String id = "id";
+//
+//            public String getId()
+//            {
+//                return id;
+//            }
+//
+//            public void setId(String id)
+//            {
+//                this.id = id;
+//            }
+//
+//            @Override
+//            public String toString()
+//            {
+//                return "匿名Result{" +
+//                        "id='" + id + '\'' +
+//                        '}';
+//            }
+//        };
+//        FastBeanProperty fastBeanProperty = new FastBeanProperty(false, new PropertyDescriptor("id", result.getClass()));
+//        UnsafeFastBean unsafeFastBean = new UnsafeFastBean(result.getClass(), MethodHandles.lookup());
+//        PropertySetterCaller<Object> beanSetter = unsafeFastBean.getBeanSetter(fastBeanProperty);
+//        beanSetter.call(result, "new");
+//        System.out.println(result);
+//    }
 }
